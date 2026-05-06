@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TeleRed — Sistema de Inventario</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* ── CSS Variables ────────────────────────────── */
+    :root {
+      --brand:       #0A84FF;
+      --brand-dark:  #0060CC;
+      --brand-glow:  rgba(10,132,255,.25);
+      --accent:      #FF3B30;
+      --accent-glow: rgba(255,59,48,.2);
+      --bg:          #070B14;
+      --surface:     #0E1525;
+      --surface2:    #141D31;
+      --border:      rgba(255,255,255,.07);
+      --border-hi:   rgba(10,132,255,.4);
+      --txt:         #E8EDF5;
+      --txt-muted:   #6B7A99;
+      --success:     #30D158;
+      --warn:        #FF9F0A;
+      --danger:      #FF3B30;
+    }
+
+    /* ── Reset / Base ─────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { font-size: 15px; }
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--txt);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── Scrollbar ────────────────────────────────── */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--brand); border-radius: 3px; }
+
+    /* ── Background grid pattern ──────────────────── */
+    body::before {
+      content: '';
+      position: fixed; inset: 0; z-index: 0;
+      background-image:
+        linear-gradient(var(--border) 1px, transparent 1px),
+        linear-gradient(90deg, var(--border) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+    }
+
+    /* ── Ambient glow blobs ───────────────────────── */
+    .blob {
+      position: fixed; border-radius: 50%;
+      filter: blur(120px); opacity: .15;
+      pointer-events: none; z-index: 0;
+    }
+    .blob-1 { width: 600px; height: 600px; background: var(--brand); top: -200px; left: -200px; }
+    .blob-2 { width: 400px; height: 400px; background: var(--accent); bottom: -100px; right: -100px; }
+
+    /* ── Layout wrapper ───────────────────────────── */
+    .layout { position: relative; z-index: 1; display: flex; flex-direction: column; min-height: 100vh; }
+
+    /* ── Navbar ───────────────────────────────────── */
+    .navbar {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 2rem;
+      height: 64px;
+      background: rgba(14,21,37,.85);
+      border-bottom: 1px solid var(--border);
+      backdrop-filter: blur(20px);
+      position: sticky; top: 0; z-index: 100;
+    }
+    .nav-brand {
+      display: flex; align-items: center; gap: .75rem;
+    }
+    .nav-logo {
+      width: 36px; height: 36px;
+      background: var(--brand);
+      border-radius: 8px;
+      display: grid; place-items: center;
+      font-family: 'Syne', sans-serif;
+      font-weight: 800; font-size: .8rem;
+      color: #fff;
+      box-shadow: 0 0 20px var(--brand-glow);
+    }
+    .nav-name {
+      font-family: 'Syne', sans-serif;
+      font-weight: 800; font-size: 1.3rem;
+      letter-spacing: -.02em;
+      background: linear-gradient(135deg, #fff 40%, var(--brand));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .nav-subtitle {
+      font-size: .72rem; color: var(--txt-muted);
+      letter-spacing: .08em; text-transform: uppercase;
+    }
+    .nav-right { display: flex; align-items: center; gap: .5rem; }
+    .nav-pill {
+      padding: .3rem .75rem; border-radius: 20px;
+      background: var(--surface2); border: 1px solid var(--border);
+      font-size: .72rem; color: var(--txt-muted);
+      letter-spacing: .04em;
+    }
+    .nav-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--success); animation: pulse 2s infinite; }
+    @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:.4; } }
+
+    /* ── Main content ────────────────────────────── */
+    main { flex: 1; padding: 2rem; max-width: 1400px; margin: 0 auto; width: 100%; }
+
+    /* ── Page header ─────────────────────────────── */
+    .page-header {
+      display: flex; align-items: flex-end; justify-content: space-between;
+      margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;
+    }
+    .page-title {
+      font-family: 'Syne', sans-serif; font-weight: 700; font-size: 1.9rem;
+      letter-spacing: -.03em;
+    }
+    .page-title span { color: var(--brand); }
+
+    /* ── Stat cards ──────────────────────────────── */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1rem; margin-bottom: 1.75rem;
+    }
+    @media (max-width: 900px) { .stats-grid { grid-template-columns: repeat(2,1fr); } }
+    @media (max-width: 500px) { .stats-grid { grid-template-columns: 1fr; } }
+
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 1.25rem 1.5rem;
+      position: relative; overflow: hidden;
+      transition: border-color .2s, transform .2s;
+    }
+    .stat-card:hover { border-color: var(--border-hi); transform: translateY(-2px); }
+    .stat-card::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+      background: linear-gradient(90deg, transparent, var(--brand), transparent);
+      opacity: 0; transition: opacity .2s;
+    }
+    .stat-card:hover::before { opacity: 1; }
+    .stat-icon { font-size: 1.4rem; margin-bottom: .5rem; }
+    .stat-val { font-family: 'Syne', sans-serif; font-size: 1.9rem; font-weight: 800; letter-spacing: -.03em; }
+    .stat-label { font-size: .75rem; color: var(--txt-muted); text-transform: uppercase; letter-spacing: .06em; margin-top: .2rem; }
+    .stat-card.warn .stat-val { color: var(--warn); }
+    .stat-card.brand .stat-val { color: var(--brand); }
+
+    /* ── Toolbar ─────────────────────────────────── */
+    .toolbar {
+      display: flex; gap: .75rem; align-items: center;
+      margin-bottom: 1rem; flex-wrap: wrap;
+    }
+    .search-wrap {
+      flex: 1; min-width: 220px; position: relative;
+    }
+    .search-icon {
+      position: absolute; left: .9rem; top: 50%; transform: translateY(-50%);
+      color: var(--txt-muted); font-size: .9rem; pointer-events: none;
+    }
+    #search {
+      width: 100%; padding: .6rem .9rem .6rem 2.4rem;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 10px; color: var(--txt); font-family: inherit; font-size: .9rem;
+      outline: none; transition: border-color .2s, box-shadow .2s;
+    }
+    #search:focus { border-color: var(--brand); box-shadow: 0 0 0 3px var(--brand-glow); }
+    #search::placeholder { color: var(--txt-muted); }
+
+    /* ── Buttons ─────────────────────────────────── */
+    .btn {
+      padding: .6rem 1.2rem; border-radius: 10px; border: none;
+      font-family: 'DM Sans', sans-serif; font-size: .85rem; font-weight: 500;
+      cursor: pointer; transition: all .18s; display: inline-flex; align-items: center; gap: .4rem;
+      white-space: nowrap;
+    }
+    .btn-primary {
+      background: var(--brand); color: #fff;
+      box-shadow: 0 0 20px var(--brand-glow);
+    }
+    .btn-primary:hover { background: var(--brand-dark); box-shadow: 0 0 30px var(--brand-glow); transform: translateY(-1px); }
+    .btn-secondary {
+      background: var(--surface2); color: var(--txt);
+      border: 1px solid var(--border);
+    }
+    .btn-secondary:hover { border-color: var(--brand); color: var(--brand); }
+    .btn-danger { background: var(--danger); color: #fff; }
+    .btn-danger:hover { background: #cc2e24; transform: translateY(-1px); }
+    .btn-ghost {
+      background: transparent; color: var(--txt-muted);
+      border: 1px solid var(--border);
+    }
+    .btn-ghost:hover { color: var(--txt); border-color: rgba(255,255,255,.15); }
+
+    /* ── Table card ──────────────────────────────── */
+    .table-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+    }
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; }
+    thead { background: var(--surface2); }
+    th {
+      padding: .85rem 1.1rem; text-align: left;
+      font-family: 'Syne', sans-serif; font-size: .75rem; font-weight: 600;
+      text-transform: uppercase; letter-spacing: .06em; color: var(--txt-muted);
+      white-space: nowrap; user-select: none;
+    }
+    th[data-sort] { cursor: pointer; transition: color .15s; }
+    th[data-sort]:hover { color: var(--brand); }
+    .si { opacity: .5; transition: opacity .15s; }
+    .si.active { opacity: 1; color: var(--brand); }
+
+    tbody tr { border-top: 1px solid var(--border); transition: background .15s; }
+    tbody tr:hover { background: rgba(10,132,255,.05); }
+    td { padding: .8rem 1.1rem; font-size: .88rem; vertical-align: middle; }
+    .td-sku { font-family: 'Syne', sans-serif; font-size: .8rem; color: var(--txt-muted); letter-spacing: .04em; }
+    .td-name { font-weight: 500; }
+    .td-price { font-family: 'Syne', sans-serif; font-weight: 700; color: var(--brand); }
+    .td-actions { display: flex; gap: .5rem; }
+    
+    /* ── Product image thumbnail ──────────────────── */
+    .td-img { text-align: center; }
+    .product-thumb {
+      width: 48px; height: 48px; object-fit: contain;
+      border-radius: 8px; border: 1px solid var(--border);
+      padding: 2px;
+    }
+    .no-image {
+      display: inline-block; padding: .3rem .5rem;
+      font-size: .7rem; color: var(--txt-muted);
+      background: var(--surface2); border-radius: 6px;
+    }
+
+    /* ── Row action buttons ───────────────────────── */
+    .btn-edit, .btn-del {
+      padding: .3rem .7rem; border-radius: 7px; border: none;
+      font-size: .75rem; font-weight: 500; cursor: pointer;
+      transition: all .15s; font-family: 'DM Sans', sans-serif;
+    }
+    .btn-edit { background: rgba(10,132,255,.15); color: var(--brand); border: 1px solid rgba(10,132,255,.25); }
+    .btn-edit:hover { background: rgba(10,132,255,.3); }
+    .btn-del { background: rgba(255,59,48,.12); color: var(--danger); border: 1px solid rgba(255,59,48,.2); }
+    .btn-del:hover { background: rgba(255,59,48,.25); }
+
+    /* ── Badges ──────────────────────────────────── */
+    .badge {
+      display: inline-block; padding: .2rem .55rem; border-radius: 6px;
+      font-size: .75rem; font-weight: 600; font-family: 'Syne', sans-serif;
+    }
+    .badge-ok  { background: rgba(48,209,88,.15);  color: var(--success); border: 1px solid rgba(48,209,88,.3); }
+    .badge-low { background: rgba(255,159,10,.15); color: var(--warn);    border: 1px solid rgba(255,159,10,.3); }
+    .badge-out { background: rgba(255,59,48,.15);  color: var(--danger);  border: 1px solid rgba(255,59,48,.3); }
+
+    .cat-badge {
+      display: inline-block; padding: .2rem .6rem; border-radius: 20px;
+      font-size: .72rem; font-weight: 500; letter-spacing: .03em;
+    }
+    .cat-redes { background: rgba(10,132,255,.15); color: #6db3ff; }
+    .cat-cable { background: rgba(48,209,88,.12);  color: #5fda8c; }
+    .cat-sec   { background: rgba(255,59,48,.12);  color: #ff7a72; }
+    .cat-infra { background: rgba(255,159,10,.12); color: #ffc456; }
+    .cat-other { background: rgba(255,255,255,.08); color: var(--txt-muted); }
+
+    /* ── Empty state ─────────────────────────────── */
+    #empty-state {
+      padding: 4rem; text-align: center; color: var(--txt-muted);
+    }
+    #empty-state .empty-icon { font-size: 3rem; margin-bottom: 1rem; }
+    #empty-state p { font-size: .9rem; }
+    .hidden { display: none !important; }
+
+    /* ── Modal ───────────────────────────────────── */
+    .overlay {
+      position: fixed; inset: 0; z-index: 200;
+      background: rgba(0,0,0,.7); backdrop-filter: blur(8px);
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0; transition: opacity .25s;
+    }
+    .overlay.show { opacity: 1; }
+
+    .modal {
+      background: var(--surface);
+      border: 1px solid var(--border-hi);
+      border-radius: 18px;
+      padding: 2rem;
+      width: 100%; max-width: 480px;
+      transform: translateY(20px); transition: transform .25s;
+      box-shadow: 0 40px 80px rgba(0,0,0,.6);
+      position: relative;
+    }
+    .overlay.show .modal { transform: translateY(0); }
+
+    .modal-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 1.5rem;
+    }
+    .modal-header h2 {
+      font-family: 'Syne', sans-serif; font-weight: 700; font-size: 1.2rem;
+    }
+    .btn-close {
+      width: 28px; height: 28px; border-radius: 50%; border: none;
+      background: var(--surface2); color: var(--txt-muted);
+      cursor: pointer; font-size: .85rem; transition: all .15s;
+      display: grid; place-items: center;
+    }
+    .btn-close:hover { background: rgba(255,59,48,.2); color: var(--danger); }
+
+    /* ── Form ─────────────────────────────────────── */
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    .form-group { display: flex; flex-direction: column; gap: .4rem; }
+    .form-group.full { grid-column: 1 / -1; }
+    label { font-size: .75rem; font-weight: 500; color: var(--txt-muted); text-transform: uppercase; letter-spacing: .05em; }
+    .form-control {
+      padding: .6rem .85rem;
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: 10px; color: var(--txt);
+      font-family: 'DM Sans', sans-serif; font-size: .88rem;
+      outline: none; transition: border-color .2s, box-shadow .2s;
+    }
+    .form-control:focus { border-color: var(--brand); box-shadow: 0 0 0 3px var(--brand-glow); }
+    .form-control:disabled { opacity: .45; cursor: not-allowed; }
+    select.form-control { cursor: pointer; }
+    select.form-control option { background: var(--surface2); }
+
+    /* ── Image upload ────────────────────────────── */
+    .image-upload-group { grid-column: 1 / -1; }
+    .file-input-label {
+      display: block; padding: .8rem 1rem; background: var(--surface2);
+      border: 2px dashed var(--border); border-radius: 10px; text-align: center;
+      cursor: pointer; transition: all .2s;
+      color: var(--txt-muted); font-weight: 500; font-size: .85rem;
+    }
+    .file-input-label:hover { border-color: var(--brand); color: var(--brand); }
+    #field-image { display: none; }
+    
+    #image-preview {
+      display: flex; align-items: center; justify-content: center;
+      width: 100%; height: 200px; margin-top: .75rem;
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: 10px; overflow: hidden;
+      color: var(--txt-muted); font-size: .85rem;
+    }
+    #image-preview img {
+      max-width: 100%; max-height: 100%; object-fit: contain;
+    }
+    .preview-placeholder { font-style: italic; }
+
+    .modal-error {
+      color: var(--danger); font-size: .8rem; margin-top: .5rem;
+      min-height: 1.2em; font-weight: 500;
+    }
+    .modal-footer {
+      display: flex; justify-content: flex-end; gap: .75rem; margin-top: 1.5rem;
+    }
+
+    /* ── Confirm dialog ───────────────────────────── */
+    .confirm-box {
+      background: var(--surface);
+      border: 1px solid rgba(255,59,48,.4);
+      border-radius: 16px; padding: 1.75rem;
+      max-width: 380px; width: 100%;
+      transform: scale(.94); transition: transform .25s;
+      box-shadow: 0 30px 60px rgba(0,0,0,.5);
+      text-align: center;
+    }
+    .overlay.show .confirm-box { transform: scale(1); }
+    .confirm-icon { font-size: 2.5rem; margin-bottom: .75rem; }
+    .confirm-box h3 {
+      font-family: 'Syne', sans-serif; font-weight: 700; margin-bottom: .6rem;
+    }
+    #confirm-msg { color: var(--txt-muted); font-size: .85rem; margin-bottom: 1.5rem; line-height: 1.5; }
+    .confirm-actions { display: flex; gap: .75rem; justify-content: center; }
+
+    /* ── Toast ───────────────────────────────────── */
+    #toast {
+      position: fixed; bottom: 2rem; right: 2rem; z-index: 300;
+      background: var(--surface2); border: 1px solid var(--border-hi);
+      color: var(--txt); padding: .75rem 1.25rem; border-radius: 12px;
+      font-size: .85rem; font-weight: 500;
+      box-shadow: 0 10px 30px rgba(0,0,0,.4);
+      transform: translateY(10px) scale(.95); opacity: 0;
+      transition: all .25s; pointer-events: none;
+    }
+    #toast.show { transform: translateY(0) scale(1); opacity: 1; }
+
+    /* ── Footer ──────────────────────────────────── */
+    footer {
+      text-align: center; padding: 1.5rem; color: var(--txt-muted);
+      font-size: .75rem; border-top: 1px solid var(--border);
+      position: relative; z-index: 1;
+    }
+    footer span { color: var(--brand); }
+  </style>
+</head>
+<body>
+
+<!-- Ambient blobs -->
+<div class="blob blob-1"></div>
+<div class="blob blob-2"></div>
+
+<div class="layout">
+
+  <!-- ════════════ NAVBAR ════════════ -->
+  <nav class="navbar">
+    <div class="nav-brand">
+      <div class="nav-logo">TR</div>
+      <div>
+        <div class="nav-name">TeleRed</div>
+        <div class="nav-subtitle">Sistema de Inventario</div>
+      </div>
+    </div>
+    <div class="nav-right">
+      <div class="nav-dot"></div>
+      <div class="nav-pill">Sistema Activo</div>
+    </div>
+  </nav>
+
+  <!-- ════════════ MAIN ════════════ -->
+  <main>
+
+    <!-- Page header -->
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">Inventario <span>General</span></h1>
+        <p style="color:var(--txt-muted);font-size:.85rem;margin-top:.25rem;">Gestión en tiempo real de productos y stock</p>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-icon">📦</div>
+        <div class="stat-val" id="stat-total">—</div>
+        <div class="stat-label">Total Productos</div>
+      </div>
+      <div class="stat-card warn">
+        <div class="stat-icon">⚠️</div>
+        <div class="stat-val" id="stat-low">—</div>
+        <div class="stat-label">Stock Bajo (≤5)</div>
+      </div>
+      <div class="stat-card brand">
+        <div class="stat-icon">💰</div>
+        <div class="stat-val" id="stat-value">—</div>
+        <div class="stat-label">Valor Total</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">🗂️</div>
+        <div class="stat-val" id="stat-cats">—</div>
+        <div class="stat-label">Categorías</div>
+      </div>
+    </div>
+
+    <!-- Toolbar -->
+    <div class="toolbar">
+      <div class="search-wrap">
+        <span class="search-icon">🔍</span>
+        <input type="search" id="search" placeholder="Buscar por ID, nombre o categoría…" />
+      </div>
+      <button class="btn btn-secondary" id="btn-export">⬇ Exportar JSON</button>
+      <button class="btn btn-primary"   id="btn-new">＋ Nuevo Producto</button>
+    </div>
+
+    <!-- Table -->
+    <div class="table-card">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th></th>
+              <th data-sort="id">   SKU / ID  <span class="si">↕</span></th>
+              <th data-sort="name"> Producto   <span class="si">↕</span></th>
+              <th data-sort="category">Categoría<span class="si">↕</span></th>
+              <th data-sort="stock">Stock      <span class="si">↕</span></th>
+              <th data-sort="price">Precio     <span class="si">↕</span></th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+      <div id="empty-state" class="hidden">
+        <div class="empty-icon">🔎</div>
+        <p>No se encontraron productos que coincidan con la búsqueda.</p>
+      </div>
+    </div>
+
+  </main>
+
+  <footer>
+    &copy; 2025 <span>TeleRed</span> · Sistema de Gestión de Inventario · Todos los derechos reservados
+  </footer>
+</div>
+
+<!-- ════════════ MODAL: CREAR / EDITAR ════════════ -->
+<div class="overlay hidden" id="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="modal-title">Nuevo Producto</h2>
+      <button class="btn-close" id="btn-cancel" aria-label="Cerrar">✕</button>
+    </div>
+
+    <div class="form-grid">
+      <div class="form-group">
+        <label for="field-id">ID / SKU</label>
+        <input class="form-control" id="field-id" type="text" placeholder="TR-011" />
+      </div>
+      <div class="form-group">
+        <label for="field-cat">Categoría</label>
+        <select class="form-control" id="field-cat">
+          <option>Redes</option>
+          <option>Cableado</option>
+          <option>Seguridad</option>
+          <option>Infraestructura</option>
+        </select>
+      </div>
+      <div class="form-group full">
+        <label for="field-name">Nombre del Artículo</label>
+        <input class="form-control" id="field-name" type="text" placeholder="Ej: Router WiFi 6 AX3000" />
+      </div>
+      <div class="form-group">
+        <label for="field-stock">Stock</label>
+        <input class="form-control" id="field-stock" type="number" min="0" placeholder="0" />
+      </div>
+      <div class="form-group">
+        <label for="field-price">Precio Unitario (USD)</label>
+        <input class="form-control" id="field-price" type="number" min="0" step="0.01" placeholder="0.00" />
+      </div>
+      <div class="form-group image-upload-group">
+        <label for="field-image" class="file-input-label">📷 Subir imagen del producto</label>
+        <input id="field-image" type="file" accept="image/*" />
+        <div id="image-preview"><span class="preview-placeholder">Sin imagen seleccionada</span></div>
+      </div>
+    </div>
+
+    <div class="modal-error" id="modal-error"></div>
+
+    <div class="modal-footer">
+      <button class="btn btn-ghost"    id="btn-cancel-dup" onclick="document.getElementById('btn-cancel').click()">Cancelar</button>
+      <button class="btn btn-primary"  id="btn-save">Guardar Producto</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════ MODAL: CONFIRMAR BORRADO ════════════ -->
+<div class="overlay hidden" id="confirm-overlay" role="alertdialog" aria-modal="true">
+  <div class="confirm-box">
+    <div class="confirm-icon">🗑️</div>
+    <h3>Eliminar Producto</h3>
+    <p id="confirm-msg"></p>
+    <div class="confirm-actions">
+      <button class="btn btn-ghost"   id="btn-cancel-del">Cancelar</button>
+      <button class="btn btn-danger"  id="btn-confirm-del">Sí, eliminar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════ TOAST ════════════ -->
+<div id="toast" role="status" aria-live="polite"></div>
+
+<!-- ════════════ Business Logic ════════════ -->
+<script src="app-telered.js"></script>
+</body>
+</html>

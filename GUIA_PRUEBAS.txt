@@ -1,0 +1,224 @@
+═══════════════════════════════════════════════════════════════════════════════
+                    GUÍA DE PRUEBA - CARGA DE IMÁGENES
+                         Sistema TeleRed Inventory
+═══════════════════════════════════════════════════════════════════════════════
+
+🧪 PRUEBAS RECOMENDADAS
+═══════════════════════════════════════════════════════════════════════════════
+
+Prueba 1: CREAR PRODUCTO CON IMAGEN
+──────────────────────────────────────────────────────────────────────────────
+
+Pasos:
+1. Abre index.html en navegador
+2. Click en botón "＋ Nuevo Producto"
+3. Completa los campos:
+   - ID/SKU: TR-011 (o similar)
+   - Categoría: Redes
+   - Nombre: Mi Nuevo Producto
+   - Stock: 10
+   - Precio: 99.99
+4. Click en área "📷 Subir imagen del producto"
+5. Selecciona una imagen PNG o JPG de tu computadora
+6. Verifica que la imagen aparezca en la vista previa (200px)
+7. Click "Guardar Producto"
+
+Resultados esperados:
+✓ La imagen se muestra como miniatura 48x48px en la tabla
+✓ El modal se cierra
+✓ Aparece toast "Producto creado ✓"
+✓ El nuevo producto aparece en la tabla
+
+
+Prueba 2: EDITAR PRODUCTO EXISTENTE (agregar imagen)
+──────────────────────────────────────────────────────────────────────────────
+
+Pasos:
+1. Click "✏ Editar" en primer producto (TR-001)
+2. Modal se abre con datos actuales
+3. La vista previa debería mostrar "Sin imagen seleccionada"
+4. Click en "📷 Subir imagen del producto"
+5. Selecciona una imagen
+6. Verifica vista previa actualizada
+7. Click "Guardar Producto"
+
+Resultados esperados:
+✓ La imagen se agrega al producto existente
+✓ La miniatura aparece en la tabla
+✓ El producto conserva sus otros datos (ID, nombre, stock, precio)
+
+
+Prueba 3: EDITAR IMAGEN DE PRODUCTO (cambiar imagen)
+──────────────────────────────────────────────────────────────────────────────
+
+Pasos:
+1. Crea un producto con imagen (Prueba 1)
+2. Click "✏ Editar" en ese producto
+3. Modal se abre y muestra la imagen actual en preview
+4. Click en "📷 Subir imagen del producto"
+5. Selecciona una imagen diferente
+6. Verifica que la preview se actualiza
+7. Click "Guardar Producto"
+
+Resultados esperados:
+✓ La imagen anterior se reemplaza
+✓ La nueva imagen aparece en tabla
+✓ El resto de datos se mantiene
+
+
+Prueba 4: BUSCAR Y FILTRAR
+──────────────────────────────────────────────────────────────────────────────
+
+Pasos:
+1. Crea varios productos con imágenes
+2. Usa buscador para filtrar por nombre
+3. Verifica que las miniaturas siguen visibles
+
+Resultados esperados:
+✓ Las imágenes se mantienen visibles
+✓ El filtro funciona correctamente
+✓ Las imágenes se cargan rápidamente
+
+
+Prueba 5: ORDENAR TABLA
+──────────────────────────────────────────────────────────────────────────────
+
+Pasos:
+1. Click en encabezados (SKU, Producto, Categoría, Stock, Precio)
+2. Verifica que los productos se reordenan
+3. Las imágenes se mueven correctamente con sus productos
+
+Resultados esperados:
+✓ El orden cambia
+✓ Las imágenes viajan con sus productos
+✓ Las miniaturas siguen mostrándose
+
+
+Prueba 6: EXPORTAR JSON
+──────────────────────────────────────────────────────────────────────────────
+
+Pasos:
+1. Crea 2-3 productos con imágenes
+2. Click "⬇ Exportar JSON"
+3. Se descarga archivo telered_inventory_YYYY-MM-DD.json
+4. Abre con editor de texto
+5. Busca "data:image/" en el archivo
+
+Resultados esperados:
+✓ El archivo JSON incluye el campo "image"
+✓ Las imágenes están codificadas en Base64
+✓ Formato: "image": "data:image/png;base64,iVBO..."
+✓ El JSON es válido y bien formateado
+
+
+Prueba 7: PERSISTENCIA (localStorage)
+──────────────────────────────────────────────────────────────────────────────
+
+Pasos:
+1. Crea un producto con imagen
+2. Recarga la página (F5 o Ctrl+R)
+3. Verifica que el producto sigue ahí
+4. La imagen sigue visible
+
+Resultados esperados:
+✓ Los datos persisten en localStorage
+✓ Las imágenes se recuperan correctamente
+✓ No se pierden datos al recargar
+
+
+Prueba 8: ELIMINAR PRODUCTO
+──────────────────────────────────────────────────────────────────────────────
+
+Pasos:
+1. Crea un producto con imagen
+2. Click "✕ Borrar"
+3. Confirma eliminación
+4. Verifica que desaparece de la tabla
+
+Resultados esperados:
+✓ El producto se elimina completamente
+✓ La imagen se descarta
+✓ La tabla se actualiza correctamente
+
+
+🖼️ FORMATOS DE IMAGEN SOPORTADOS
+═══════════════════════════════════════════════════════════════════════════════
+
+✓ PNG (.png)
+✓ JPEG (.jpg, .jpeg)
+✓ GIF (.gif)
+✓ WebP (.webp)
+✓ SVG (.svg)
+✓ Cualquier formato que reconozca el navegador
+
+Tamaño recomendado:
+• Máximo: 2-5 MB por imagen (para no llenar localStorage)
+• Ideal: 500 KB - 1 MB
+• Para uso web: JPG comprimido es recomendado
+
+
+📐 TAMAÑOS VISUALES
+═══════════════════════════════════════════════════════════════════════════════
+
+En tabla:
+• Miniatura: 48 x 48 px
+• Información: "Sin imagen" si no existe
+
+En modal:
+• Contenedor: Ancho completo, Alto 200px
+• Imagen: Se adapta manteniendo proporciones (object-fit: contain)
+• Preview: Se actualiza en tiempo real
+
+
+🔍 VERIFICAR EN BROWSER DEV TOOLS
+═══════════════════════════════════════════════════════════════════════════════
+
+F12 → Application / Storage → Local Storage → (tu sitio)
+
+Clave: telered_inventory
+Valor: JSON completo con campo "image" en Base64
+
+Ejemplo:
+{
+  "id": "TR-001",
+  "name": "Router WiFi 6 AX3000",
+  "category": "Redes",
+  "stock": 42,
+  "price": 189.99,
+  "image": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
+}
+
+
+⚠️ LIMITACIONES CONOCIDAS
+═══════════════════════════════════════════════════════════════════════════════
+
+• localStorage: Límite típico 5-10 MB
+  → Con muchas imágenes grandes, puede llenar rápidamente
+  → Solución: Usar URLs externas o servicio de almacenamiento
+
+• Base64: ~33% más grande que archivo original
+  → Tenga en cuenta al planificar capacidad
+
+• Compatible: Navegadores modernos con soporte localStorage
+  → Navegadores muy antiguos podrían no funcionar
+
+• Rendimiento: Muchas imágenes grandes pueden ralentizar
+  → Comprimir imágenes antes de subir
+
+
+✅ LISTA DE VERIFICACIÓN FINAL
+═══════════════════════════════════════════════════════════════════════════════
+
+□ Las imágenes se cargan correctamente
+□ La vista previa se actualiza en tiempo real
+□ Las miniaturas aparecen en la tabla
+□ Las imágenes persisten al recargar
+□ El JSON exportado incluye imágenes
+□ Se pueden editar imágenes
+□ Se pueden eliminar productos con imágenes
+□ El filtro de búsqueda mantiene las imágenes visibles
+□ La tabla se ordena correctamente con imágenes
+□ "Sin imagen" aparece cuando no hay foto
+
+🎉 ¡Si todas las pruebas pasan, la implementación está LISTA!
+═══════════════════════════════════════════════════════════════════════════════
